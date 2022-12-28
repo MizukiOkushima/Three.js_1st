@@ -1,8 +1,17 @@
 // Three.jsのモジュールの読み込み
 import * as THREE from "./build/three.module.js";
+// FlyControlsオブジェクトの読み込み マウスカーソル操作が可能
+import { FlyControls } from "./jsm/controls/FlyControls.js";
+
+// Lensflareオブジェクトの読み込み
+import { Lensflare, LensflareElement } from "./jsm/objects/Lensflare.js";
 
 // 変数宣言
 let camera, scene, renderer;
+let controls;
+
+// Clock 現在の経過時間を表示するオブジェクト
+const clock = new THREE.Clock();
 
 // 初期化関数の読み込み
 init();
@@ -67,6 +76,11 @@ function init() {
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.03);
   scene.add(dirLight);
 
+  // textureLoader TextureLoaderを使ってレンズフレアの追加
+  const textureLoader = new THREE.TextureLoader();
+  // テクスチャの読み込み
+  const textureFlare = textureLoader.load("./textures/LensFlare.png");
+
   // addLightを読み込む
   // 引数：h 色相, 引数：s 彩度
   // 引数：l 輝度, 引数：x, y, z 座標
@@ -83,6 +97,12 @@ function init() {
     light.color.setHSL(h, s, l);
     light.position.set(x, y, z);
     scene.add(light);
+
+    const lensflare = new Lensflare();
+    lensflare.addElement(
+      new LensflareElement(textureFlare, 700, 0, light.color)
+    );
+    scene.add(lensflare);
   }
 
   // WebGLRenderer カメラに映したものを描画する
@@ -92,8 +112,35 @@ function init() {
   // window.innerWidth, window.innerHeightで全画面を指定
   renderer.setSize(window.innerWidth, window.innerHeight);
 
+  // outputEncodingをsRGBEncodingに変更
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
   // index.phpのbodyタグ内に表示させる
   document.body.appendChild(renderer.domElement);
+
+  // マウス操作を行う
+  controls = new FlyControls(camera, renderer.domElement);
+
+  // movementSpeed マウスクリック時のスピード速度
+  controls.movementSpeed = 2500;
+
+  // rollSpeed カーソルの位置の速度変更
+  controls.rollSpeed = Math.PI / 20;
+
+  // animate関数の呼び出し
+  animate();
+}
+
+// animate関数
+function animate(){
+  // requestAnimationFrame フレーム単位で画像を更新する animate関数を毎フレームごとに読み込む
+  requestAnimationFrame(animate);
+
+  // getDelta 経過した時間を取得
+  const delta = clock.getDelta();
+
+  // update関数にdeltaを入れる
+  controls.update(delta);
 
   // render関数を使用してレンダリング
   // 引数にscene, camera
